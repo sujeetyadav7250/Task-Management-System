@@ -16,43 +16,50 @@ connectDB();
 
 const app = express();
 
-// CORS Configuration - Fixed without wildcard
-app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'https://task-management-system-5p3q9iesp-sujeets-projects-b3c29e8d.vercel.app'
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+// ------------------- ✅ CORS Configuration (Dynamic for Vercel) -------------------
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173'
+];
 
-// Manual CORS middleware for preflight - NO WILDCARD
+// Custom middleware to handle CORS dynamically
 app.use((req, res, next) => {
-  // Set CORS headers for all responses
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'https://task-management-system-5p3q9iesp-sujeets-projects-b3c29e8d.vercel.app'
-  ];
-  
   const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
+
+  // ✅ Allow localhost + any Vercel deployment for your project
+  const vercelPattern = /^https:\/\/task-management-system-[a-z0-9-]+\.vercel\.app$/;
+
+  if (allowedOrigins.includes(origin) || vercelPattern.test(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
   }
-  
+
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
   res.header('Access-Control-Allow-Credentials', 'true');
 
-  // Handle preflight requests
+  // Handle preflight (OPTIONS) requests
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
   next();
 });
+
+// Apply CORS globally for Express
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || /^https:\/\/task-management-system-[a-z0-9-]+\.vercel\.app$/.test(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+// -------------------------------------------------------------------------------
 
 app.use(express.json());
 
@@ -103,9 +110,9 @@ process.on('unhandledRejection', (err, promise) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log('CORS enabled for:');
+  console.log(`✅ Server is running on port ${PORT}`);
+  console.log('🌍 CORS dynamically enabled for:');
   console.log('- http://localhost:3000');
-  console.log('- http://localhost:5173'); 
-  console.log('- https://task-management-system-5p3q9iesp-sujeets-projects-b3c29e8d.vercel.app');
+  console.log('- http://localhost:5173');
+  console.log('- All Vercel deployments under https://task-management-system-*.vercel.app');
 });
