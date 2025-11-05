@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react'
 import { authService } from '../services/auth'
+import { toastService } from '../services/toast'
 
 const AuthContext = createContext()
 
@@ -27,6 +28,7 @@ export const AuthProvider = ({ children }) => {
         .then(response => {
           if (response.success) {
             setUser(response.data.user)
+            toastService.success('Welcome back!')
           } else {
             authService.logout()
             setUser(null)
@@ -48,17 +50,32 @@ export const AuthProvider = ({ children }) => {
     try {
       setError('')
       setLoading(true)
+      const toastId = toastService.loading('Signing in...')
+      
       const response = await authService.login({ email, password })
       
       if (response.success) {
         setUser(response.data.user)
+        toastService.update(toastId, {
+          render: 'Login successful!',
+          type: 'success',
+          isLoading: false,
+          autoClose: 3000
+        })
         return { success: true }
       } else {
+        toastService.update(toastId, {
+          render: response.message,
+          type: 'error',
+          isLoading: false,
+          autoClose: 5000
+        })
         setError(response.message)
         return { success: false, message: response.message }
       }
     } catch (error) {
       const message = error.response?.data?.message || 'Login failed'
+      toastService.error(message)
       setError(message)
       return { success: false, message }
     } finally {
@@ -70,17 +87,32 @@ export const AuthProvider = ({ children }) => {
     try {
       setError('')
       setLoading(true)
+      const toastId = toastService.loading('Creating account...')
+      
       const response = await authService.register({ name, email, password })
       
       if (response.success) {
         setUser(response.data.user)
+        toastService.update(toastId, {
+          render: 'Account created successfully!',
+          type: 'success',
+          isLoading: false,
+          autoClose: 3000
+        })
         return { success: true }
       } else {
+        toastService.update(toastId, {
+          render: response.message,
+          type: 'error',
+          isLoading: false,
+          autoClose: 5000
+        })
         setError(response.message)
         return { success: false, message: response.message }
       }
     } catch (error) {
       const message = error.response?.data?.message || 'Registration failed'
+      toastService.error(message)
       setError(message)
       return { success: false, message }
     } finally {
@@ -92,6 +124,7 @@ export const AuthProvider = ({ children }) => {
     authService.logout()
     setUser(null)
     setError('')
+    toastService.info('Logged out successfully')
   }
 
   const clearError = () => {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { format } from 'date-fns'
+import { toastService } from '../../services/toast'
 
 const TaskForm = ({ task, onSubmit, onClose }) => {
   const [formData, setFormData] = useState({
@@ -42,6 +43,7 @@ const TaskForm = ({ task, onSubmit, onClose }) => {
         tags: [...formData.tags, tagInput.trim()]
       })
       setTagInput('')
+      toastService.info(`Tag "${tagInput.trim()}" added`)
     }
   }
 
@@ -50,6 +52,7 @@ const TaskForm = ({ task, onSubmit, onClose }) => {
       ...formData,
       tags: formData.tags.filter(tag => tag !== tagToRemove)
     })
+    toastService.info(`Tag "${tagToRemove}" removed`)
   }
 
   const handleTagInputKeyPress = (e) => {
@@ -64,6 +67,7 @@ const TaskForm = ({ task, onSubmit, onClose }) => {
     
     if (!formData.title.trim()) {
       setError('Title is required')
+      toastService.error('Title is required')
       return
     }
 
@@ -82,9 +86,15 @@ const TaskForm = ({ task, onSubmit, onClose }) => {
 
       if (!result.success) {
         setError(result.message)
+        toastService.error(result.message)
+      } else {
+        // Success toast will be shown in the parent component (Dashboard)
+        onClose()
       }
     } catch (error) {
-      setError('An error occurred while saving the task')
+      const message = 'An error occurred while saving the task'
+      setError(message)
+      toastService.error(message)
     } finally {
       setLoading(false)
     }
@@ -98,6 +108,9 @@ const TaskForm = ({ task, onSubmit, onClose }) => {
         ...formData,
         tags: [...formData.tags, tag]
       })
+      toastService.info(`Tag "${tag}" added`)
+    } else {
+      toastService.warning(`Tag "${tag}" already exists`)
     }
   }
 
@@ -112,6 +125,7 @@ const TaskForm = ({ task, onSubmit, onClose }) => {
           <button 
             className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
             onClick={onClose}
+            disabled={loading}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -227,6 +241,7 @@ const TaskForm = ({ task, onSubmit, onClose }) => {
                     type="button"
                     onClick={() => handleRemoveTag(tag)}
                     className="ml-2 text-blue-600 hover:text-blue-800"
+                    disabled={loading}
                   >
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -245,11 +260,13 @@ const TaskForm = ({ task, onSubmit, onClose }) => {
                 onKeyPress={handleTagInputKeyPress}
                 placeholder="Add a tag"
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                disabled={loading}
               />
               <button 
                 type="button" 
                 onClick={handleAddTag}
-                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50"
+                disabled={loading}
               >
                 Add
               </button>
@@ -268,7 +285,7 @@ const TaskForm = ({ task, onSubmit, onClose }) => {
                       : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
                   }`}
                   onClick={() => addCommonTag(tag)}
-                  disabled={formData.tags.includes(tag)}
+                  disabled={formData.tags.includes(tag) || loading}
                 >
                   {tag}
                 </button>
@@ -291,7 +308,14 @@ const TaskForm = ({ task, onSubmit, onClose }) => {
               disabled={loading}
               className="flex-1 px-4 py-2 text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             >
-              {loading ? 'Saving...' : (task ? 'Update Task' : 'Create Task')}
+              {loading ? (
+                <span className="flex items-center justify-center">
+                  <div className="loading-spinner mr-2" style={{ width: '16px', height: '16px', borderWidth: '2px' }}></div>
+                  {task ? 'Updating...' : 'Creating...'}
+                </span>
+              ) : (
+                task ? 'Update Task' : 'Create Task'
+              )}
             </button>
           </div>
         </form>

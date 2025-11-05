@@ -4,12 +4,12 @@ import TaskForm from './TaskForm'
 import TaskFilters from './TaskFilters'
 import TaskStats from './TaskStats'
 import { taskService } from '../../services/tasks'
+import { toastService } from '../../services/toast'
 import Loading from '../common/Loading'
 
 const Dashboard = () => {
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
   const [stats, setStats] = useState(null)
@@ -37,10 +37,10 @@ const Dashboard = () => {
         setTasks(response.data.tasks)
         setPagination(response.data.pagination)
       } else {
-        setError('Failed to fetch tasks')
+        toastService.error('Failed to fetch tasks')
       }
     } catch (error) {
-      setError(error.response?.data?.message || 'Error fetching tasks')
+      toastService.error(error.response?.data?.message || 'Error fetching tasks')
     } finally {
       setLoading(false)
     }
@@ -64,15 +64,16 @@ const Dashboard = () => {
         setShowTaskForm(false)
         fetchTasks()
         fetchStats()
+        toastService.success('Task created successfully!')
         return { success: true }
       } else {
+        toastService.error(response.message)
         return { success: false, message: response.message }
       }
     } catch (error) {
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Error creating task' 
-      }
+      const message = error.response?.data?.message || 'Error creating task'
+      toastService.error(message)
+      return { success: false, message }
     }
   }
 
@@ -83,15 +84,16 @@ const Dashboard = () => {
         setEditingTask(null)
         fetchTasks()
         fetchStats()
+        toastService.success('Task updated successfully!')
         return { success: true }
       } else {
+        toastService.error(response.message)
         return { success: false, message: response.message }
       }
     } catch (error) {
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Error updating task' 
-      }
+      const message = error.response?.data?.message || 'Error updating task'
+      toastService.error(message)
+      return { success: false, message }
     }
   }
 
@@ -102,11 +104,12 @@ const Dashboard = () => {
         if (response.success) {
           fetchTasks()
           fetchStats()
+          toastService.success('Task deleted successfully!')
         } else {
-          setError('Failed to delete task')
+          toastService.error('Failed to delete task')
         }
       } catch (error) {
-        setError(error.response?.data?.message || 'Error deleting task')
+        toastService.error(error.response?.data?.message || 'Error deleting task')
       }
     }
   }
@@ -154,21 +157,6 @@ const Dashboard = () => {
             </button>
           </div>
         </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex justify-between items-center">
-            <span>{error}</span>
-            <button 
-              className="text-red-700 hover:text-red-900"
-              onClick={() => setError('')}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        )}
 
         {/* Statistics */}
         <TaskStats stats={stats} />
